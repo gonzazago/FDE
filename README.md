@@ -38,7 +38,21 @@ graph TD;
 
 ## Cómo correrlo
 
-Requiere Python 3.11 o superior.
+Requiere Python 3.10 o superior (en Mac: `brew install python@3.12`).
+
+### Con make (lo más simple)
+
+```bash
+make setup    # una sola vez: busca Python 3.10+, crea .venv, instala dependencias y la base
+make help     # lista todos los comandos
+make demo     # las 5 conversaciones de ejemplo
+make chat THREAD=mi-prueba
+```
+
+No hace falta activar el entorno virtual: los comandos de `make` usan `.venv/bin/python` directamente.
+Si creás un `.env` (copiando `.env.example`), `make` carga sus variables, por ejemplo `ANTHROPIC_API_KEY`.
+
+### A mano
 
 ```bash
 python -m venv .venv && source .venv/bin/activate      # en Windows: .venv\Scripts\activate
