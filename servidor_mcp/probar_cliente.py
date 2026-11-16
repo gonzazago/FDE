@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from agente.tools.mcp_cliente import herramientas_mcp  # noqa: E402
+from agente.tools.cliente_mcp import herramientas_mcp  # noqa: E402
 
 if __name__ == "__main__":
     lecturas = {t.name for t in herramientas_mcp(solo_lectura=True)}

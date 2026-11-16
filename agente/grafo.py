@@ -15,7 +15,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
 from agente import llm
-from agente.models import (
+from agente.model import (
     DecisionAprobacion, ErrorHerramienta, EstadoAgente, Rechazo, SolicitudAprobacion,
 )
 from agente.tools import ESCRITURA, LECTURA, TODAS, es_escritura

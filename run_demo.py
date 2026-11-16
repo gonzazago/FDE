@@ -10,7 +10,7 @@ import uuid
 
 from langgraph.types import Command
 
-from agente.models import entrada_turno
+from agente.model import entrada_turno
 from agente.grafo import aprobacion_pendiente, construir_grafo, respuesta_final
 from config import MAX_PASOS, MODELO, RAIZ
 from sistema_cliente.seed import crear

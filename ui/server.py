@@ -28,7 +28,7 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMe
 from langgraph.types import Command  # noqa: E402
 from pydantic import BaseModel  # noqa: E402
 
-from agente.models import entrada_turno  # noqa: E402
+from agente.model import entrada_turno  # noqa: E402
 from agente import llm  # noqa: E402
 from agente.grafo import aprobacion_pendiente, construir_grafo, respuesta_final  # noqa: E402
 from agente.tools import es_escritura  # noqa: E402

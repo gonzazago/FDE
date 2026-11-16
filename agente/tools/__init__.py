@@ -1,4 +1,4 @@
-"""Todas las tools del agente, separadas en lectura y escritura."""
+"""Todas las tools del agente: read/ (lectura) y write/ (escritura)."""
 from agente.tools.read import LECTURA
 from agente.tools.write import ESCRITURA
 

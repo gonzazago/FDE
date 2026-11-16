@@ -14,8 +14,8 @@ estado, dentro de un grafo que limita qué puede hacer.
 Toda herramienta MCP que **no** esté marcada como `read_only_hint=True`. En este caso es
 `reprogramar_entrega`, que modifica la fecha y genera un compromiso logístico con el cliente.
 Un error ahí tiene costo real: camiones, personal del depósito o un cliente sin mercadería.
-Las consultas (`consultar_pedido`, `listar_pedidos_cliente`, `buscar_documentos`, en `agente/tools/read.py`) no cambian
-nada y corren sin pausa. La regla vive en las anotaciones del servidor (separa `read.py` de `write.py`) y no en el grafo, así
+Las consultas (`consultar_pedido`, `listar_pedidos_cliente`, `buscar_documentos`, en `servidor_mcp/tools/read/`) no cambian
+nada y corren sin pausa. La regla vive en las anotaciones del servidor (separa `read/` de `write/`) y no en el grafo, así
 que una herramienta de escritura nueva queda protegida por defecto.
 
 ## ¿Cómo elegimos el límite de pasos?

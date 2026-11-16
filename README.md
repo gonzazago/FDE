@@ -13,9 +13,9 @@ agente-supervisado/
 ├── agente/            El cerebro
 │   ├── llm.py         Claude con las tools enlazadas (bind_tools)
 │   ├── grafo.py       Grafo de LangGraph: nodos, aprobación humana, memoria
-│   ├── models/        Modelos pydantic: estado, aprobaciones, resultados
-│   └── tools/         Las manos: tools de LangChain, en read.py y write.py
-├── servidor_mcp/      Servidor MCP propio que expone el sistema del cliente
+│   ├── model/         Modelos pydantic: estado, aprobaciones, resultados
+│   └── tools/         Las manos: read/ (lectura) y write/ (escritura)
+├── servidor_mcp/      Servidor MCP propio: expone los pedidos y el RAG como tools (model/, tools/read, tools/write)
 ├── sistema_cliente/   El "sistema del cliente" simulado (base SQLite con datos ficticios)
 ├── ui/                Interfaz web: chat + eventos en vivo + grafo
 ├── docs/              Políticas (para el RAG) y entregables: conversaciones, grafo, decisiones
@@ -64,15 +64,15 @@ Otros comandos: `make demo` (5 conversaciones de ejemplo), `make mcp` (prueba el
 
 | Requisito | Dónde está |
 |---|---|
-| Estado con `mensajes`, `usuario`, `pasos`, `pendiente_aprobacion` | `agente/models/estado.py` (pydantic) |
+| Estado con `mensajes`, `usuario`, `pasos`, `pendiente_aprobacion` | `agente/model/estado.py` (pydantic) |
 | Nodos decidir, pedir aprobación, responder y **un nodo por cada tool** | `agente/grafo.py` |
 | Bucle con límite configurable y mensaje claro al llegar al máximo | `MAX_PASOS` en `config.py` |
 | Estado persistente con `thread_id` | `SqliteSaver` en `agente/grafo.py` |
 | Aprobación humana con `interrupt` (aprobada y rechazada) | nodo `pedir_aprobacion`; si se rechaza, la tool no corre y el modelo se lo cuenta al usuario |
-| Servidor MCP propio con herramientas tipadas (lectura y escritura) | `servidor_mcp/server.py` |
+| Servidor MCP propio con herramientas tipadas (lectura y escritura) | `servidor_mcp/tools/read/`, `servidor_mcp/tools/write/` |
 | Script cliente que lista herramientas y llama a una | `servidor_mcp/probar_cliente.py` |
 | Sistema del cliente simulado | `sistema_cliente/seed.py` |
-| `buscar_documentos` (tu RAG) como tool con `@tool` | `agente/tools/read.py` |
+| `buscar_documentos` (tu RAG) como tool del servidor MCP | `servidor_mcp/tools/read/buscar_documentos.py` |
 | 5 conversaciones de ejemplo con traza | `run_demo.py` → `docs/conversaciones/` |
 | Grafo exportado en Mermaid | `exportar_grafo.py` → `docs/grafo.mmd` |
 | Decisiones y bitácora del asistente | `docs/decisiones.md`, `docs/bitacora_asistente.md` |

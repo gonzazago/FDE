@@ -1,13 +1,14 @@
 # agente/ — el cerebro
 
-Todo lo que el agente es y puede hacer.
-
 ```
 agente/
+├── __init__.py
 ├── llm.py        El motor: Claude con las tools enlazadas (bind_tools) y el prompt de sistema
 ├── grafo.py      El grafo de LangGraph: nodos, aristas, aprobación humana y memoria
-├── models/       Modelos pydantic: estado, aprobaciones, resultados de las tools
-└── tools/        Las tools, separadas en lectura y escritura
+├── model/        Modelos pydantic: estado, aprobaciones, resultados de las tools
+└── tools/
+    ├── read/     Tools de lectura (sin aprobación)
+    └── write/    Tools de escritura (con aprobación humana)
 ```
 
 | Archivo | Qué hace |
