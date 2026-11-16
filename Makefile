@@ -11,7 +11,7 @@ endif
 THREAD ?= chat-$(shell date +%s)
 
 .DEFAULT_GOAL := help
-.PHONY: help setup seed mcp demo chat grafo test reset clean
+.PHONY: help setup seed mcp demo chat ui grafo test reset clean
 
 help: ## Muestra esta ayuda
 	@echo "Comandos disponibles:"
@@ -37,6 +37,10 @@ demo: $(PY) ## Corre las 5 conversaciones de ejemplo (docs/conversaciones/)
 
 chat: $(PY) ## Chat con el agente (THREAD=nombre para retomar una conversación)
 	@$(PY) chat.py --thread $(THREAD)
+
+ui: $(PY) ## Abre la UI web: chat + eventos en vivo + grafo (http://localhost:8000)
+	@$(PY) -c "import fastapi, uvicorn" 2>/dev/null || $(PY) -m pip install --quiet -r requirements.txt
+	@$(PY) ui/server.py
 
 grafo: $(PY) ## Exporta el diagrama del grafo a docs/grafo.mmd
 	@$(PY) exportar_grafo.py

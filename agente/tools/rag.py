@@ -1,13 +1,13 @@
-"""buscar_documentos: versión simplificada del RAG de la Pre-Entrega 3.
+"""Búsqueda sobre las políticas: versión simplificada del RAG de la Pre-Entrega 3.
 
-Acá se busca por coincidencia de palabras sobre los .md de docs/politicas para
-que el proyecto corra sin dependencias extra. Reemplazá `buscar_documentos`
-por tu RAG real (búsqueda híbrida + permisos); el grafo no cambia mientras
-respetes la misma firma y el mismo formato de salida.
+Busca por coincidencia de palabras en los .md de docs/politicas para que el proyecto corra
+sin dependencias extra. Reemplazá `buscar` por tu RAG real (búsqueda híbrida + permisos):
+el grafo no cambia mientras `buscar_documentos` (en read.py) siga devolviendo lo mismo.
 """
 import re
 import unicodedata
 
+from agente.models import Fragmento, ResultadoBusqueda
 from config import DOCS_POLITICAS
 
 STOPWORDS = {
@@ -22,10 +22,13 @@ def _normalizar(texto: str) -> str:
     return "".join(c for c in texto if unicodedata.category(c) != "Mn")
 
 
+_STOP = {_normalizar(s) for s in STOPWORDS}
+
+
 def _tokens(texto: str) -> set[str]:
     palabras = re.findall(r"[a-z0-9]+", _normalizar(texto))
     # recorte simple de plurales/derivados: "devoluciones" ~ "devolver" -> "devol"
-    return {p[:5] for p in palabras if p not in {_normalizar(s) for s in STOPWORDS} and len(p) > 2}
+    return {p[:5] for p in palabras if p not in _STOP and len(p) > 2}
 
 
 def _fragmentos():
@@ -36,16 +39,9 @@ def _fragmentos():
                 yield archivo.stem, linea
 
 
-def buscar_documentos(consulta: str, k: int = 3, umbral: int = 1) -> dict:
-    """Devuelve hasta k fragmentos con al menos `umbral` términos en común con la consulta."""
+def buscar(consulta: str, k: int = 3) -> ResultadoBusqueda:
     q = _tokens(consulta)
-    puntuados = []
-    for fuente, texto in _fragmentos():
-        score = len(q & _tokens(texto))
-        if score >= umbral:
-            puntuados.append((score, fuente, texto))
-    puntuados.sort(key=lambda x: -x[0])
-    return {
-        "consulta": consulta,
-        "resultados": [{"fuente": f, "texto": t, "score": s} for s, f, t in puntuados[:k]],
-    }
+    puntuados = [(len(q & _tokens(t)), f, t) for f, t in _fragmentos()]
+    mejores = sorted((p for p in puntuados if p[0] >= 1), key=lambda p: -p[0])[:k]
+    return ResultadoBusqueda(consulta=consulta,
+                             resultados=[Fragmento(fuente=f, texto=t, score=s) for s, f, t in mejores])

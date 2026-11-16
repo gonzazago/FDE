@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agente supervisado · UI</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #161a21; --panel2: #1c212b; --borde: #2a303c;
+    --texto: #e6e8ec; --tenue: #8b93a3; --acento: #ff6a2b; --amarillo: #fdab2e;
+    --verde: #3ecf8e; --rojo: #f0626b; --azul: #6aa8ff; --violeta: #b48cff;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--texto);
+    font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  button { font: inherit; cursor: pointer; }
+  .app { display: grid; grid-template-rows: 52px 1fr; height: 100vh; }
+
+  /* barra superior */
+  header { display: flex; align-items: center; gap: 12px; padding: 0 16px;
+    border-bottom: 1px solid var(--borde); background: var(--panel); }
+  .logo { font-weight: 700; letter-spacing: .2px; }
+  .logo span { color: var(--acento); }
+  .chip { font: 12px var(--mono); padding: 3px 8px; border-radius: 999px;
+    background: var(--panel2); border: 1px solid var(--borde); color: var(--tenue); }
+  .chip b { color: var(--texto); font-weight: 600; }
+  header .sep { flex: 1; }
+  header label { color: var(--tenue); font-size: 12px; }
+  header input { background: var(--bg); border: 1px solid var(--borde); color: var(--texto);
+    border-radius: 6px; padding: 5px 8px; font: 12px var(--mono); width: 150px; }
+  .btn { background: var(--panel2); border: 1px solid var(--borde); color: var(--texto);
+    border-radius: 6px; padding: 5px 10px; }
+  .btn:hover { border-color: var(--tenue); }
+
+  .cuerpo { display: grid; grid-template-columns: 320px minmax(0, 1fr) 400px; min-height: 0; }
+  section { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-right: 1px solid var(--borde); }
+  section:last-child { border-right: 0; }
+  .titulo { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--tenue); border-bottom: 1px solid var(--borde); display: flex; justify-content: space-between; }
+
+  /* eventos */
+  #eventos { overflow: auto; flex: 1; padding: 6px 0; }
+  .ev { padding: 7px 14px; border-left: 3px solid transparent; cursor: pointer; }
+  .ev:hover { background: var(--panel); }
+  .ev.sel { background: var(--panel2); border-left-color: var(--acento); }
+  .ev .cab { display: flex; gap: 8px; align-items: baseline; }
+  .ev .hora { font: 11px var(--mono); color: var(--tenue); flex: none; }
+  .ev .tipo { font: 600 12px var(--mono); }
+  .ev .ms { margin-left: auto; font: 11px var(--mono); color: var(--tenue); }
+  .ev .det { color: var(--tenue); font-size: 12px; margin: 2px 0 0 62px; word-break: break-word; }
+  .ev pre { display: none; margin: 6px 0 2px 62px; padding: 8px; background: var(--bg);
+    border: 1px solid var(--borde); border-radius: 6px; font: 11px var(--mono);
+    white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow: auto; }
+  .ev.sel pre { display: block; }
+  .ev.run { padding: 4px 14px; color: var(--tenue); font: 11px var(--mono); cursor: default; }
+  .t-inicio { color: var(--azul); } .t-fin { color: var(--verde); } .t-aprob { color: var(--amarillo); }
+  .t-resp { color: var(--violeta); } .t-error { color: var(--rojo); }
+
+  /* chat */
+  #chat { flex: 1; overflow: auto; padding: 18px 22px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 78%; padding: 10px 13px; border-radius: 12px; white-space: pre-wrap; }
+  .msg.user { align-self: flex-end; background: #2b3550; border-bottom-right-radius: 4px; }
+  .msg.ai { align-self: flex-start; background: var(--panel2); border: 1px solid var(--borde); border-bottom-left-radius: 4px; }
+  .paso { align-self: flex-start; font: 12px var(--mono); color: var(--tenue); background: transparent;
+    border: 1px dashed var(--borde); border-radius: 999px; padding: 3px 10px; cursor: pointer; max-width: 90%;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .paso:hover { color: var(--texto); border-color: var(--tenue); }
+  .paso.tool { color: var(--azul); } .paso.decision { color: var(--tenue); }
+  .aprob { align-self: stretch; border: 1px solid var(--amarillo); background: rgba(253,171,46,.07);
+    border-radius: 10px; padding: 12px 14px; }
+  .aprob h4 { margin: 0 0 6px; color: var(--amarillo); font-size: 13px; }
+  .aprob table { font: 12px var(--mono); border-collapse: collapse; margin: 6px 0 10px; }
+  .aprob td { padding: 2px 12px 2px 0; vertical-align: top; }
+  .aprob td:first-child { color: var(--tenue); }
+  .aprob .razon { color: var(--tenue); font-size: 12px; margin-bottom: 10px; }
+  .aprob .acciones { display: flex; gap: 8px; align-items: center; }
+  .aprob input { flex: 1; background: var(--bg); border: 1px solid var(--borde); color: var(--texto);
+    border-radius: 6px; padding: 6px 8px; }
+  .si { background: var(--verde); color: #08130d; border: 0; border-radius: 6px; padding: 6px 12px; font-weight: 600; }
+  .no { background: transparent; color: var(--rojo); border: 1px solid var(--rojo); border-radius: 6px; padding: 6px 12px; }
+  .aprob.resuelta { opacity: .6; } .aprob.resuelta .acciones { display: none; }
+  .vacio { margin: auto; text-align: center; color: var(--tenue); max-width: 420px; }
+  .vacio .ejemplos { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .vacio button { background: var(--panel); border: 1px solid var(--borde); color: var(--texto);
+    border-radius: 8px; padding: 7px 10px; text-align: left; }
+  .vacio button:hover { border-color: var(--acento); }
+  form { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--borde); background: var(--panel); }
+  form input { flex: 1; background: var(--bg); border: 1px solid var(--borde); color: var(--texto);
+    border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  form button { background: var(--acento); color: #1a0a03; border: 0; border-radius: 8px; padding: 0 16px; font-weight: 700; }
+  form button:disabled { opacity: .4; cursor: default; }
+  .escribiendo { align-self: flex-start; color: var(--tenue); font-size: 12px; }
+
+  /* grafo y estado */
+  #grafo { padding: 10px; display: flex; justify-content: center; border-bottom: 1px solid var(--borde); min-height: 330px; }
+  #grafo svg { max-width: 100%; height: auto; }
+  #grafo .node rect, #grafo .node path, #grafo .node polygon, #grafo .node circle {
+    transition: fill .2s, stroke .2s; }
+  #grafo .node.visitado rect, #grafo .node.visitado path, #grafo .node.visitado polygon {
+    stroke: var(--verde) !important; stroke-width: 2px !important; }
+  #grafo .node.lectura rect { stroke: #4aa3ff; stroke-dasharray: 4 2; }
+  #grafo .node.escritura rect { stroke: #ff8a4a; stroke-dasharray: 4 2; }
+  #grafo .node.activo rect, #grafo .node.activo path, #grafo .node.activo polygon {
+    fill: var(--acento) !important; stroke: var(--amarillo) !important; stroke-width: 3px !important; }
+  #grafo .node.activo .nodeLabel, #grafo .node.activo .nodeLabel p { color: #1a0a03 !important; font-weight: 700; }
+  #grafo .node.pausa rect, #grafo .node.pausa path { fill: var(--amarillo) !important; }
+  #grafo .node.pausa .nodeLabel, #grafo .node.pausa .nodeLabel p { color: #1a0a03 !important; font-weight: 700; }
+  #grafo path.recorrida { stroke: var(--acento) !important; stroke-width: 2.5px !important; }
+  .leyenda { display: flex; gap: 12px; padding: 6px 14px; font-size: 11px; color: var(--tenue); border-bottom: 1px solid var(--borde); }
+  .leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+  #estado { overflow: auto; flex: 1; padding: 10px 14px; font-size: 12px; }
+  .kv { display: grid; grid-template-columns: 140px 1fr; gap: 4px 10px; margin-bottom: 12px; }
+  .kv div:nth-child(odd) { color: var(--tenue); font: 12px var(--mono); }
+  .kv div:nth-child(even) { font: 12px var(--mono); word-break: break-word; }
+  .barra { height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+  .barra div { height: 100%; background: var(--acento); width: 0; transition: width .3s; }
+  .herr { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; border-top: 1px solid var(--borde); font: 12px var(--mono); }
+  .herr span:last-child { color: var(--tenue); }
+  .herr .w { color: var(--amarillo); }
+  h5 { margin: 14px 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--tenue); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="logo">Agente <span>supervisado</span></div>
+    <span class="chip" id="chip-decisor">modelo: …</span>
+    <span class="chip" id="chip-pasos">máx. pasos: …</span>
+    <div class="sep"></div>
+    <label for="thread">thread_id</label>
+    <input id="thread" spellcheck="false">
+    <button class="btn" id="cargar" title="Cargar este thread (persistencia)">Cargar</button>
+    <button class="btn" id="nuevo">Nuevo</button>
+  </header>
+
+  <div class="cuerpo">
+    <section>
+      <div class="titulo"><span>Eventos</span><button class="btn" id="limpiar" style="padding:0 6px;font-size:11px">limpiar</button></div>
+      <div id="eventos"></div>
+    </section>
+
+    <section>
+      <div class="titulo"><span>Chat</span><span id="usuario-lbl">usuario: cliente_12</span></div>
+      <div id="chat"></div>
+      <form id="form">
+        <input id="texto" autocomplete="off" placeholder="Escribí una consulta… (ej. ¿En qué estado está el pedido 1042?)">
+        <button id="enviar">Enviar</button>
+      </form>
+    </section>
+
+    <section>
+      <div class="titulo"><span>Grafo</span><span id="nodo-actual">—</span></div>
+      <div class="leyenda">
+        <span><i style="background:var(--acento)"></i>activo</span>
+        <span><i style="border:2px solid var(--verde)"></i>visitado en este turno</span>
+        <span><i style="background:var(--amarillo)"></i>esperando aprobación</span>
+        <span><i style="border:2px dashed #4aa3ff"></i>tool de lectura</span>
+        <span><i style="border:2px dashed #ff8a4a"></i>tool de escritura</span>
+      </div>
+      <div id="grafo">cargando grafo…</div>
+      <div class="titulo"><span>Estado</span></div>
+      <div id="estado"></div>
+    </section>
+  </div>
+</div>
+
+<script type="module">
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const hora = (t) => new Date((t || Date.now() / 1000) * 1000).toLocaleTimeString("es-AR", { hour12: false });
+const corto = (o, n = 90) => { const s = typeof o === "string" ? o : JSON.stringify(o); return s.length > n ? s.slice(0, n) + "…" : s; };
+
+let info = { max_pasos: 4, herramientas: [] };
+let estado = { pasos: 0, decision: null, pendiente_aprobacion: null };
+let ocupado = false, nodoPrevio = null, contadorEv = 0;
+
+// ---------------- thread_id (se recuerda entre recargas, si el navegador lo permite)
+const guardar = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const leer = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const nuevoId = () => "ui-" + Math.random().toString(36).slice(2, 8);
+$("#thread").value = new URLSearchParams(location.search).get("thread") || leer("thread") || nuevoId();
+
+// ---------------- grafo (Mermaid)
+let mermaidOK = false;
+async function dibujarGrafo() {
+  const r = await fetch("/api/grafo").then((r) => r.json());
+  try {
+    const { default: mermaid } = await import("https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs");
+    mermaid.initialize({ startOnLoad: false, theme: "dark", flowchart: { curve: "basis", nodeSpacing: 14, rankSpacing: 45 },
+      themeVariables: { primaryColor: "#1c212b", primaryBorderColor: "#4a5262", primaryTextColor: "#e6e8ec", lineColor: "#6b7383" } });
+    const fuente = r.mermaid.replace(/classDef default[^\n]*\n?/g, "").replace(/classDef last[^\n]*\n?/g, "");
+    const { svg } = await mermaid.render("g" + Date.now(), fuente);
+    $("#grafo").innerHTML = svg;
+    mermaidOK = true;
+    // las tools se distinguen por borde: azul = lectura, naranja = escritura
+    info.herramientas.forEach((h) => nodoSvg(h.nombre)?.classList.add(h.solo_lectura ? "lectura" : "escritura"));
+  } catch (e) {
+    $("#grafo").innerHTML = `<pre style="font:11px var(--mono);color:var(--tenue)">${esc(r.mermaid)}</pre>
+      <div style="color:var(--tenue);font-size:12px">No se pudo cargar Mermaid (¿sin internet?). Se muestra el texto del grafo.</div>`;
+  }
+}
+const nodoSvg = (n) => document.querySelector(`#grafo g.node[id*="-flowchart-${n}-"]`);
+function marcarNodo(n, clase) {
+  if (!mermaidOK) return;
+  document.querySelectorAll(`#grafo .node.${clase}`).forEach((el) => el.classList.remove(clase));
+  if (n) nodoSvg(n)?.classList.add(clase);
+}
+function visitar(n) { if (mermaidOK) nodoSvg(n)?.classList.add("visitado"); }
+function marcarArista(a, b) {
+  if (!mermaidOK || !a || !b) return;
+  const el = document.querySelector(`#grafo path[id*="-L_${a}_${b}_"]`);
+  if (el) el.classList.add("recorrida");
+}
+function reiniciarGrafo() {
+  document.querySelectorAll("#grafo .visitado, #grafo .activo, #grafo .pausa").forEach((e) => e.classList.remove("visitado", "activo", "pausa"));
+  document.querySelectorAll("#grafo .recorrida").forEach((e) => e.classList.remove("recorrida"));
+  nodoPrevio = "__start__"; visitar("__start__");
+}
+
+// ---------------- panel de estado
+function pintarEstado() {
+  const d = estado.decision;
+  const pend = estado.pendiente_aprobacion;
+  $("#estado").innerHTML = `
+    <div class="kv">
+      <div>thread_id</div><div>${esc($("#thread").value)}</div>
+      <div>pasos</div><div>${estado.pasos} / ${info.max_pasos}<div class="barra"><div style="width:${Math.min(100, (estado.pasos / info.max_pasos) * 100)}%"></div></div></div>
+      <div>última decisión</div><div>${d ? esc(d) : "—"}</div>
+      <div>pendiente_aprobacion</div><div>${pend ? esc(pend.herramienta + " " + JSON.stringify(pend.argumentos)) : "—"}</div>
+    </div>
+    <h5>Tools del modelo</h5>
+    ${info.herramientas.map((h) => `<div class="herr" title="${esc(h.descripcion)}"><span>${esc(h.nombre)}</span>
+      <span class="${h.solo_lectura ? "" : "w"}">${h.solo_lectura ? "lectura" : "escritura · requiere aprobación"}</span></div>`).join("")}`;
+}
+
+// ---------------- línea de tiempo de eventos
+function agregarEvento(tipo, clase, detalle, datos, ms) {
+  const id = "ev" + ++contadorEv;
+  const div = document.createElement("div");
+  div.className = "ev"; div.id = id;
+  div.innerHTML = `<div class="cab"><span class="hora">${hora(datos?.t)}</span><span class="tipo ${clase}">${esc(tipo)}</span>
+    ${ms != null ? `<span class="ms">${ms} ms</span>` : ""}</div>
+    ${detalle ? `<div class="det">${esc(detalle)}</div>` : ""}<pre>${esc(JSON.stringify(datos, null, 2))}</pre>`;
+  div.onclick = () => seleccionar(id);
+  $("#eventos").appendChild(div);
+  $("#eventos").scrollTop = $("#eventos").scrollHeight;
+  return id;
+}
+function separadorRun(texto) {
+  const d = document.createElement("div"); d.className = "ev run"; d.textContent = texto;
+  $("#eventos").appendChild(d);
+}
+function seleccionar(id) {
+  document.querySelectorAll(".ev.sel").forEach((e) => e.classList.remove("sel"));
+  const el = document.getElementById(id);
+  if (el) { el.classList.add("sel"); el.scrollIntoView({ block: "nearest" }); }
+}
+
+// ---------------- chat
+function limpiarVacio() { $("#chat .vacio")?.remove(); }
+function burbuja(rol, texto) {
+  limpiarVacio();
+  const d = document.createElement("div");
+  d.className = "msg " + (rol === "human" ? "user" : "ai");
+  d.textContent = texto;
+  $("#chat").appendChild(d); bajar();
+}
+function chipPaso(texto, clase, evId) {
+  const d = document.createElement("button");
+  d.className = "paso " + clase; d.textContent = texto; d.title = texto;
+  d.onclick = () => seleccionar(evId);
+  $("#chat").appendChild(d); bajar();
+}
+function tarjetaAprobacion(p) {
+  limpiarVacio();
+  const d = document.createElement("div");
+  d.className = "aprob";
+  d.innerHTML = `<h4>⏸ El agente quiere ejecutar una acción que modifica el sistema</h4>
+    <table><tr><td>herramienta</td><td>${esc(p.herramienta)}</td></tr>
+    ${Object.entries(p.argumentos || {}).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join("")}</table>
+    ${p.razon ? `<div class="razon">El agente dice: ${esc(p.razon)}</div>` : ""}
+    <div class="acciones"><input placeholder="Comentario para el usuario (opcional)">
+      <button class="si">Aprobar</button><button class="no">Rechazar</button></div>`;
+  const resolver = (ok) => {
+    d.classList.add("resuelta");
+    d.querySelector("h4").textContent = ok ? "✓ Acción aprobada" : "✗ Acción rechazada";
+    correr("/api/aprobar", { thread_id: $("#thread").value, aprobado: ok, comentario: d.querySelector("input").value });
+  };
+  d.querySelector(".si").onclick = () => resolver(true);
+  d.querySelector(".no").onclick = () => resolver(false);
+  $("#chat").appendChild(d); bajar();
+}
+function bajar() { $("#chat").scrollTop = $("#chat").scrollHeight; }
+function pantallaVacia() {
+  $("#chat").innerHTML = `<div class="vacio">Probá con alguno de estos ejemplos:<div class="ejemplos">
+    ${["¿En qué estado está el pedido 1042?", "¿Cuál es la política de devoluciones?",
+       "Reprogramá la entrega del pedido 1042 para el 2026-11-20 porque cierra el local",
+       "Consultá los pedidos 1042, 1043 y 1050 y decime cuál se entrega primero"].map((e) => `<button>${esc(e)}</button>`).join("")}</div></div>`;
+  $("#chat").querySelectorAll(".vacio button").forEach((b) => (b.onclick = () => enviar(b.textContent)));
+}
+
+// ---------------- manejo de eventos del servidor
+function manejar(ev) {
+  if (ev.tipo === "inicio_run") { separadorRun(`── run ${hora(ev.t)} ──`); return; }
+  if (ev.tipo === "nodo_inicio") {
+    marcarArista(nodoPrevio, ev.nodo);
+    marcarNodo(ev.nodo, "activo"); $("#nodo-actual").textContent = "▶ " + ev.nodo;
+    agregarEvento("▶ " + ev.nodo, "t-inicio", "", ev);
+    nodoPrevio = ev.nodo; return;
+  }
+  if (ev.tipo === "nodo_fin") {
+    visitar(ev.nodo);
+    const u = ev.actualizacion || {};
+    Object.assign(estado, Object.fromEntries(Object.entries(u).filter(([k]) => ["pasos", "pendiente_aprobacion"].includes(k))));
+    const ultimaTraza = (u.traza || []).slice(-1)[0] || "";
+    const id = agregarEvento("✓ " + ev.nodo, ev.error ? "t-error" : "t-fin", ev.error || ultimaTraza, ev, ev.ms);
+    const msgs = u.mensajes || [];
+    if (ev.nodo === "decidir") {
+      if (u.limite) { estado.decision = "límite de pasos"; chipPaso("⛔ límite de pasos alcanzado", "decision", id); }
+      for (const m of msgs) {
+        const llamadas = m.tool_calls || [];
+        llamadas.forEach((c) => chipPaso(`🧠 llama a ${c.nombre} ${corto(c.argumentos, 70)}`, "decision", id));
+        estado.decision = llamadas.length ? llamadas.map((c) => c.nombre).join(", ") : "responder";
+      }
+    }
+    if (info.herramientas.some((h) => h.nombre === ev.nodo)) {  // el nodo de una tool
+      msgs.forEach((m) => chipPaso(`🔧 ${m.nombre} → ${corto(m.contenido, 80)}`, "tool", id));
+    }
+    pintarEstado(); return;
+  }
+  if (ev.tipo === "aprobacion") {
+    marcarNodo(null, "activo"); marcarNodo("pedir_aprobacion", "pausa");
+    $("#nodo-actual").textContent = "⏸ pedir_aprobacion";
+    agregarEvento("⏸ interrupt: aprobación", "t-aprob", `${ev.payload.herramienta} ${JSON.stringify(ev.payload.argumentos)}`, ev);
+    estado.pendiente_aprobacion = ev.payload; pintarEstado();
+    tarjetaAprobacion(ev.payload); return;
+  }
+  if (ev.tipo === "respuesta") {
+    marcarNodo(null, "activo"); marcarNodo(null, "pausa"); $("#nodo-actual").textContent = "fin";
+    marcarArista("responder", "__end__"); visitar("__end__");
+    agregarEvento("💬 respuesta", "t-resp", corto(ev.texto, 120), ev);
+    estado.pendiente_aprobacion = null; pintarEstado();
+    burbuja("ai", ev.texto); return;
+  }
+  if (ev.tipo === "error") {
+    agregarEvento("✗ error", "t-error", ev.detalle, ev);
+    burbuja("ai", "⚠ " + ev.detalle); return;
+  }
+}
+
+async function correr(url, cuerpo) {
+  ocupado = true; $("#enviar").disabled = true;
+  const esp = document.createElement("div"); esp.className = "escribiendo"; esp.textContent = "el agente está trabajando…";
+  $("#chat").appendChild(esp); bajar();
+  try {
+    const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+    const lector = resp.body.getReader(); const dec = new TextDecoder(); let buf = "";
+    while (true) {
+      const { value, done } = await lector.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf("\n\n")) >= 0) {
+        const bloque = buf.slice(0, i); buf = buf.slice(i + 2);
+        const linea = bloque.split("\n").find((l) => l.startsWith("data: "));
+        if (linea) { const ev = JSON.parse(linea.slice(6)); if (ev.tipo !== "fin_run") manejar(ev); }
+        $("#chat").appendChild(esp);
+      }
+    }
+  } catch (e) {
+    manejar({ tipo: "error", detalle: "Se cortó la conexión con el servidor: " + e.message });
+  } finally {
+    esp.remove(); ocupado = false; $("#enviar").disabled = false; $("#texto").focus();
+  }
+}
+
+function enviar(texto) {
+  if (ocupado || !texto.trim()) return;
+  reiniciarGrafo(); estado.pasos = 0; estado.decision = null; pintarEstado();
+  burbuja("human", texto);
+  correr("/api/mensaje", { thread_id: $("#thread").value, texto });
+}
+
+async function cargarThread() {
+  const id = $("#thread").value.trim() || nuevoId();
+  $("#thread").value = id; guardar("thread", id);
+  history.replaceState(null, "", "?thread=" + encodeURIComponent(id));
+  const r = await fetch("/api/estado?thread_id=" + encodeURIComponent(id)).then((r) => r.json());
+  $("#chat").innerHTML = ""; reiniciarGrafo();
+  estado = { pasos: r.pasos || 0, decision: null, pendiente_aprobacion: r.pendiente };
+  if (!r.mensajes.length && !r.pendiente) pantallaVacia();
+  r.mensajes.forEach((m) => burbuja(m.rol, m.contenido));
+  if (r.pendiente) { marcarNodo("pedir_aprobacion", "pausa"); tarjetaAprobacion(r.pendiente); }
+  separadorRun(`── thread ${id} cargado (${r.mensajes.length} mensajes) ──`);
+  pintarEstado();
+}
+
+$("#form").onsubmit = (e) => { e.preventDefault(); const t = $("#texto").value; $("#texto").value = ""; enviar(t); };
+$("#nuevo").onclick = () => { $("#thread").value = nuevoId(); $("#eventos").innerHTML = ""; cargarThread(); };
+$("#cargar").onclick = cargarThread;
+$("#thread").onkeydown = (e) => { if (e.key === "Enter") cargarThread(); };
+$("#limpiar").onclick = () => ($("#eventos").innerHTML = "");
+
+info = await fetch("/api/info").then((r) => r.json());
+$("#chip-decisor").innerHTML = `modelo: <b>${esc(info.modelo)}</b>`;
+$("#chip-pasos").innerHTML = `máx. pasos: <b>${info.max_pasos}</b>`;
+await dibujarGrafo();
+await cargarThread();
+</script>
+</body>
+</html>

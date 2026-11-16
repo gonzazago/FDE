@@ -14,8 +14,8 @@ estado, dentro de un grafo que limita qué puede hacer.
 Toda herramienta MCP que **no** esté marcada como `read_only_hint=True`. En este caso es
 `reprogramar_entrega`, que modifica la fecha y genera un compromiso logístico con el cliente.
 Un error ahí tiene costo real: camiones, personal del depósito o un cliente sin mercadería.
-Las consultas (`consultar_pedido`, `listar_pedidos_cliente`, `buscar_documentos`) no cambian
-nada y corren sin pausa. La regla vive en las anotaciones del servidor y no en el grafo, así
+Las consultas (`consultar_pedido`, `listar_pedidos_cliente`, `buscar_documentos`, en `agente/tools/read.py`) no cambian
+nada y corren sin pausa. La regla vive en las anotaciones del servidor (separa `read.py` de `write.py`) y no en el grafo, así
 que una herramienta de escritura nueva queda protegida por defecto.
 
 ## ¿Cómo elegimos el límite de pasos?
@@ -32,6 +32,4 @@ la variable de entorno `MAX_PASOS`.
 - **Una sesión MCP por llamada.** Es más simple y robusto, aunque agrega latencia de arranque.
   En producción usaríamos una sesión persistente o un transporte HTTP.
 - **Estado con referencias.** Guardamos los resultados de las herramientas de este turno, no
-  documentos completos. `resultados` y `traza` se reinician en cada turno.
-- **Decisor de reglas.** Permite testear el grafo sin depender del modelo, aunque no
-  generaliza. El caso real usa `DecisorLLM`.
+  documentos completos. La `traza` se reinicia en cada turno.

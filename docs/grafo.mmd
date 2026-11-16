@@ -6,17 +6,27 @@ config:
 graph TD;
 	__start__([<p>__start__</p>]):::first
 	decidir(decidir)
-	ejecutar_herramienta(ejecutar_herramienta)
 	pedir_aprobacion(pedir_aprobacion)
+	buscar_documentos(buscar_documentos)
+	consultar_pedido(consultar_pedido)
+	listar_pedidos_cliente(listar_pedidos_cliente)
+	reprogramar_entrega(reprogramar_entrega)
 	responder(responder)
 	__end__([<p>__end__</p>]):::last
 	__start__ --> decidir;
-	decidir -.-> ejecutar_herramienta;
+	buscar_documentos --> decidir;
+	consultar_pedido --> decidir;
+	decidir -.-> buscar_documentos;
+	decidir -.-> consultar_pedido;
+	decidir -.-> listar_pedidos_cliente;
 	decidir -.-> pedir_aprobacion;
 	decidir -.-> responder;
-	ejecutar_herramienta --> decidir;
-	pedir_aprobacion -.-> ejecutar_herramienta;
-	pedir_aprobacion -.-> responder;
+	listar_pedidos_cliente --> decidir;
+	pedir_aprobacion -.-> buscar_documentos;
+	pedir_aprobacion -.-> consultar_pedido;
+	pedir_aprobacion -.-> listar_pedidos_cliente;
+	pedir_aprobacion -.-> reprogramar_entrega;
+	reprogramar_entrega --> decidir;
 	responder --> __end__;
 	classDef default fill:#f2f0ff,line-height:1.2
 	classDef first fill-opacity:0

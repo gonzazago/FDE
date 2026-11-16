@@ -48,9 +48,10 @@ fi
 echo "• Instalando dependencias (puede tardar un par de minutos la primera vez)"
 .venv/bin/python -m pip install --quiet --upgrade pip
 .venv/bin/python -m pip install --quiet -r requirements.txt
+touch .venv/.dependencias
 
 # 4. Base del cliente
 .venv/bin/python sistema_cliente/seed.py
 
 echo ""
-echo "✓ Listo. Probá:  make demo   ·   make chat   ·   make help"
+echo "✓ Listo. Probá:  make ui   ·   make demo   ·   make help"

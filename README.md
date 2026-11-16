@@ -1,114 +1,80 @@
 # Agente supervisado · Pre-Entrega 4 (ejemplo)
 
-Proyecto de ejemplo para la **Pre-Entrega 4: Agente con LangGraph, MCP y aprobación humana**
-del curso Forward Deployed Engineer.
+Proyecto de ejemplo para la **Pre-Entrega 4: Agente con LangGraph, MCP y aprobación humana**.
 
-**Caso ficticio:** soporte de pedidos de la *Distribuidora Los Andes*. El agente responde
-consultas sobre pedidos y políticas, y puede **reprogramar entregas**, pero solo si una
-persona lo aprueba.
+**Caso ficticio:** soporte de pedidos de la *Distribuidora Los Andes*. El agente, usando
+Claude, responde consultas sobre pedidos y políticas, y puede **reprogramar entregas**,
+pero solo si una persona lo aprueba.
+
+## Estructura de carpetas
+
+```
+agente-supervisado/
+├── agente/            El cerebro
+│   ├── llm.py         Claude con las tools enlazadas (bind_tools)
+│   ├── grafo.py       Grafo de LangGraph: nodos, aprobación humana, memoria
+│   ├── models/        Modelos pydantic: estado, aprobaciones, resultados
+│   └── tools/         Las manos: tools de LangChain, en read.py y write.py
+├── servidor_mcp/      Servidor MCP propio que expone el sistema del cliente
+├── sistema_cliente/   El "sistema del cliente" simulado (base SQLite con datos ficticios)
+├── ui/                Interfaz web: chat + eventos en vivo + grafo
+├── docs/              Políticas (para el RAG) y entregables: conversaciones, grafo, decisiones
+├── data/              Bases que genera el proyecto (no se suben al repo)
+├── config.py          Configuración: modelo, máximo de pasos, rutas. Lee el .env
+├── run_demo.py        Corre las 5 conversaciones de ejemplo de la consigna
+├── exportar_grafo.py  Exporta el diagrama del grafo en Mermaid
+├── Makefile           Atajos: make setup, make ui, make demo…
+└── setup.sh           Instala todo (lo usa make setup)
+```
+
+Cada carpeta tiene su propio `README.md` que explica qué hay adentro.
+
+**Cómo se conectan:** la `ui/` (o `run_demo.py`) le pasa el mensaje al grafo de `agente/`.
+Claude, con las tools enlazadas (`bind_tools`), responde con texto o pide tools
+(`tool_calls`). El grafo ejecuta esas tools de `agente/tools/`; las del servidor MCP leen y
+escriben en `sistema_cliente/`. Si una tool es de escritura, el grafo se pausa hasta que una
+persona aprueba. El resultado vuelve al modelo, que sigue hasta responder sin pedir tools.
 
 ```mermaid
 graph TD;
-  __start__([inicio]) --> decidir;
-  decidir -.-> ejecutar_herramienta;
-  decidir -.-> pedir_aprobacion;
-  decidir -.-> responder;
-  ejecutar_herramienta --> decidir;
-  pedir_aprobacion -.aprobada.-> ejecutar_herramienta;
-  pedir_aprobacion -.rechazada.-> responder;
-  responder --> __end__([fin]);
+  inicio([inicio]) --> decidir;
+  decidir -.lectura.-> tool_de_lectura;
+  decidir -.escritura.-> pedir_aprobacion;
+  decidir -.sin tools.-> responder;
+  pedir_aprobacion --> tool_de_escritura;
+  tool_de_lectura --> decidir;
+  tool_de_escritura --> decidir;
+  responder --> fin([fin]);
 ```
+
+## Cómo correrlo
+
+Requiere Python 3.10 o superior (en Mac: `brew install python@3.12`) y una API key de Anthropic.
+
+```bash
+cp .env.example .env     # y pegá tu ANTHROPIC_API_KEY (sin comillas)
+make setup               # una sola vez: entorno, dependencias y base del cliente
+make ui                  # abre http://localhost:8000
+```
+
+Otros comandos: `make demo` (5 conversaciones de ejemplo), `make mcp` (prueba el servidor MCP),
+`make grafo` (exporta el Mermaid), `make reset` (vuelve los datos al inicio) y `make help`.
 
 ## Qué cubre de la consigna
 
 | Requisito | Dónde está |
 |---|---|
-| Grafo con estado `mensajes`, `usuario`, `pasos`, `pendiente_aprobacion` | `agente/estado.py` |
-| Nodos decidir, ejecutar herramienta, pedir aprobación y responder | `agente/grafo.py` |
-| Bucle con límite configurable y mensaje claro al llegar al máximo | `MAX_PASOS` en `config.py`, nodo `decidir` |
-| Estado persistente: interrumpir y retomar con el mismo `thread_id` | `SqliteSaver` en `agente/grafo.py`, `chat.py --thread` |
-| Aprobación humana con `interrupt` (caminos aprobado y rechazado) | nodo `pedir_aprobacion` |
-| Servidor MCP propio, ≥ 2 herramientas tipadas (lectura y escritura) | `servidor_mcp/server.py` |
+| Estado con `mensajes`, `usuario`, `pasos`, `pendiente_aprobacion` | `agente/models/estado.py` (pydantic) |
+| Nodos decidir, pedir aprobación, responder y **un nodo por cada tool** | `agente/grafo.py` |
+| Bucle con límite configurable y mensaje claro al llegar al máximo | `MAX_PASOS` en `config.py` |
+| Estado persistente con `thread_id` | `SqliteSaver` en `agente/grafo.py` |
+| Aprobación humana con `interrupt` (aprobada y rechazada) | nodo `pedir_aprobacion`; si se rechaza, la tool no corre y el modelo se lo cuenta al usuario |
+| Servidor MCP propio con herramientas tipadas (lectura y escritura) | `servidor_mcp/server.py` |
 | Script cliente que lista herramientas y llama a una | `servidor_mcp/probar_cliente.py` |
-| Sistema del cliente simulado (SQLite con datos ficticios) | `sistema_cliente/seed.py` |
-| `buscar_documentos` (tu RAG) como herramienta | `agente/rag.py` |
+| Sistema del cliente simulado | `sistema_cliente/seed.py` |
+| `buscar_documentos` (tu RAG) como tool con `@tool` | `agente/tools/read.py` |
 | 5 conversaciones de ejemplo con traza | `run_demo.py` → `docs/conversaciones/` |
 | Grafo exportado en Mermaid | `exportar_grafo.py` → `docs/grafo.mmd` |
-| Decisiones y trade-offs / bitácora del asistente | `docs/decisiones.md`, `docs/bitacora_asistente.md` |
+| Decisiones y bitácora del asistente | `docs/decisiones.md`, `docs/bitacora_asistente.md` |
 
-## Cómo correrlo
-
-Requiere Python 3.10 o superior (en Mac: `brew install python@3.12`).
-
-### Con make (lo más simple)
-
-```bash
-make setup    # una sola vez: busca Python 3.10+, crea .venv, instala dependencias y la base
-make help     # lista todos los comandos
-make demo     # las 5 conversaciones de ejemplo
-make chat THREAD=mi-prueba
-```
-
-No hace falta activar el entorno virtual: los comandos de `make` usan `.venv/bin/python` directamente.
-Si creás un `.env` (copiando `.env.example`), `make` carga sus variables, por ejemplo `ANTHROPIC_API_KEY`.
-
-### A mano
-
-```bash
-python -m venv .venv && source .venv/bin/activate      # en Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-
-python sistema_cliente/seed.py          # crea data/distribuidora.db
-python servidor_mcp/probar_cliente.py   # lista las herramientas MCP y llama a una
-python run_demo.py                      # corre las 5 conversaciones y guarda las trazas
-python exportar_grafo.py                # escribe docs/grafo.mmd
-python -m pytest -q                     # 4 tests del flujo
-python chat.py --thread mi-prueba       # chat interactivo con aprobación por consola
-```
-
-### Con o sin modelo
-
-- **Sin API key**, el agente usa `DecisorReglas`, un decisor determinístico. Así podés probar
-  el grafo, el MCP, la persistencia y la aprobación sin gastar tokens.
-- **Con `ANTHROPIC_API_KEY`** en el entorno (ver `.env.example`), usa `DecisorLLM`: Claude
-  elige la acción con salida estructurada validada con Pydantic y redacta la respuesta.
-  Podés forzar el modo con `DECISOR=reglas` o `DECISOR=llm`, y cambiar el modelo con `MODELO=...`.
-
-### Probar la persistencia
-
-```bash
-python chat.py --thread demo-persistencia
-vos > Reprogramá el pedido 1061 para el 2026-11-28 porque cambian el depósito
-¿Aprobás? [s/n] (o 'salir' para dejarlo pendiente): salir
-
-python chat.py --thread demo-persistencia   # otro proceso: vuelve a mostrar la aprobación pendiente
-```
-
-## Estructura
-
-```
-agente/
-  estado.py        Estado del grafo + esquema Decision (Pydantic)
-  grafo.py         Nodos, aristas, interrupt y checkpointer
-  decisor.py       DecisorLLM (Claude) y DecisorReglas (sin API key)
-  mcp_cliente.py   Cliente MCP por stdio: lista y llama herramientas
-  rag.py           buscar_documentos (reemplazalo por tu RAG de la Pre-Entrega 3)
-servidor_mcp/
-  server.py        Servidor MCP (MCPServer, SDK mcp >= 2)
-  probar_cliente.py
-sistema_cliente/seed.py   Base SQLite simulada
-docs/                     Políticas, conversaciones, grafo, decisiones y bitácora
-```
-
-## Cómo adaptarlo a tu caso
-
-1. Cambiá `sistema_cliente/seed.py` por los datos ficticios de tu caso.
-2. Reescribí las herramientas de `servidor_mcp/server.py`. Marcá con `read_only_hint=True`
-   las de lectura: el agente pide aprobación **para todas las demás**, sin tocar el grafo.
-3. Reemplazá `agente/rag.py` por tu RAG real, con la misma firma.
-4. Ajustá `PROMPT_SISTEMA` en `agente/decisor.py` y las 5 conversaciones de `run_demo.py`.
-5. Completá `docs/decisiones.md` y tu propia `docs/bitacora_asistente.md`.
-
-> Nota sobre el SDK de MCP: este proyecto usa `mcp` 2.x, donde `FastMCP` pasó a llamarse
-> `MCPServer` (`from mcp.server.mcpserver import MCPServer`). Si tu entorno usa `mcp` 1.x,
-> el equivalente es `from mcp.server.fastmcp import FastMCP` con los mismos decoradores.
+> Este proyecto usa `mcp` 2.x, donde `FastMCP` pasó a llamarse `MCPServer`.
